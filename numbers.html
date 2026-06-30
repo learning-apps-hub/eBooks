@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Numbers Book – Emily</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="book-page" id="app">
+
+  <!-- Header -->
+  <header class="book-header">
+    <button class="home-btn" onclick="location.href='index.html'" title="Home">🏠</button>
+    <span class="book-name">📖 Numbers 1 · 2 · 3</span>
+    <span class="page-counter" id="pageCounter">1 / 101</span>
+  </header>
+
+  <!-- Content -->
+  <div class="content-area page-slide" id="contentArea">
+
+    <!-- Left page: numeral worksheet (outline + stroke order) -->
+    <div class="page-left">
+      <canvas id="numeralCanvas" class="glyph-canvas" width="300" height="360"></canvas>
+    </div>
+
+    <!-- Right page: illustration + word cards -->
+    <div class="page-right">
+      <div class="illustration" id="illustration"></div>
+
+      <div class="word-cards">
+        <div class="word-card en" onclick="speakEn()">
+          <span class="flag">🇬🇧</span>
+          <div>
+            <div class="word-text" id="enWord">Zero</div>
+            <div class="word-sub">English</div>
+          </div>
+          <span class="speaker">🔊</span>
+        </div>
+        <div class="word-card zh" onclick="speakZhWord()">
+          <span class="flag">🇨🇳</span>
+          <div>
+            <div class="word-text" id="zhWord">零</div>
+            <div class="word-sub" id="zhWordPinyin">líng</div>
+          </div>
+          <span class="speaker">🔊</span>
+        </div>
+        <div class="word-card pl" onclick="speakPl()">
+          <span class="flag">🇵🇱</span>
+          <div>
+            <div class="word-text" id="plWord">Zero</div>
+            <div class="word-sub">Polski</div>
+          </div>
+          <span class="speaker">🔊</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer navigation -->
+  <footer class="book-footer">
+    <button class="nav-btn" id="prevBtn" onclick="changePage(-1)" disabled>◀</button>
+    <button class="practice-btn" onclick="openPractice()">✏️ Practice Writing</button>
+    <button class="nav-btn" id="nextBtn" onclick="changePage(1)">▶</button>
+  </footer>
+</div>
+
+<!-- Practice Modal -->
+<div class="modal-overlay" id="practiceModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Write: <span id="modalTitle">0</span></span>
+      <button class="modal-close" onclick="closePractice()">✕</button>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabDigit" onclick="switchTab('digit')">Number <span id="tabDigitLabel">0</span></button>
+      <button class="modal-tab" id="tabChinese" onclick="switchTab('chinese')">Chinese <span id="tabChineseLabel">零</span></button>
+    </div>
+
+    <canvas id="practiceCanvas" width="340" height="340"></canvas>
+
+    <!-- Hanzi writer container (shown in chinese tab) -->
+    <div id="hanziWrap" style="display:none; justify-content:center;">
+      <div id="hanzi-modal-container"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-watch" onclick="watchAnimation()">🎬 Watch</button>
+      <button class="btn-clear" onclick="clearPractice()">🗑️ Clear</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/tts.js"></script>
+<script src="js/stroke.js"></script>
+<script>
+  const DOT_COLORS = ['#FF6B6B','#4FC3F7','#66BB6A','#FFD54F','#CE93D8',
+                       '#FF8A65','#26C6DA','#AB47BC','#EC407A','#FFA726'];
+
+  let currentPage = 0;
+  let practiceController = null;
+  let currentTab = 'digit';
+  let hanziWriter = null;
+
+  // ── Render a page ───────────────────────────────────────────────────────────
+  // Build the stroke layout for a numeral string (1+ digits side by side)
+  function numeralLayout(numeral) {
+    const sets = [...numeral].map(d => DIGIT_STROKES[d]).filter(Boolean);
+    return StrokeGuide.placeGlyphs(sets);
+  }
+
+  function render(n) {
+    const data = NUMBERS[n];
+
+    // Header counter
+    document.getElementById('pageCounter').textContent = `${n + 1} / 101`;
+
+    // Numeral worksheet
+    StrokeGuide.drawStatic(document.getElementById('numeralCanvas'),
+      numeralLayout(data.numeral), { accent: '#EE5A5A', outlineColor: '#F3D9D9' });
+
+    // Chinese
+    document.getElementById('zhWord').textContent    = data.zh;
+    document.getElementById('zhWordPinyin').textContent = data.zhPinyin;
+
+    // English / Polish
+    document.getElementById('enWord').textContent = data.en;
+    document.getElementById('plWord').textContent = data.pl;
+
+    // Illustration
+    renderIllustration(n, data.emoji);
+
+    // Nav buttons
+    document.getElementById('prevBtn').disabled = (n === 0);
+    document.getElementById('nextBtn').disabled = (n === 100);
+
+    // Slide animation
+    const ca = document.getElementById('contentArea');
+    ca.classList.remove('page-slide');
+    void ca.offsetWidth; // reflow
+    ca.classList.add('page-slide');
+  }
+
+  function renderIllustration(n, emoji) {
+    const el = document.getElementById('illustration');
+    if (n === 0) {
+      el.className = 'illustration empty-label';
+      el.textContent = 'Nothing... zero!';
+      return;
+    }
+    el.className = 'illustration';
+
+    if (n <= 20) {
+      // Show n emoji
+      el.textContent = '';
+      const maxPerRow = n <= 5 ? n : n <= 12 ? Math.ceil(n / 2) : Math.ceil(n / 3);
+      el.style.fontSize = n <= 5 ? 'clamp(2.5rem,7vw,4.5rem)' :
+                          n <= 10 ? 'clamp(2rem,5vw,3.5rem)' : 'clamp(1.4rem,3.5vw,2.4rem)';
+      for (let i = 0; i < n; i++) {
+        const span = document.createElement('span');
+        span.textContent = emoji;
+        el.appendChild(span);
+      }
+    } else {
+      // Dot grid
+      el.textContent = '';
+      el.style.fontSize = '1rem';
+      const grid = document.createElement('div');
+      grid.className = 'dot-grid';
+      for (let i = 0; i < n; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.background = DOT_COLORS[Math.floor(i / 10) % DOT_COLORS.length];
+        grid.appendChild(dot);
+      }
+      el.appendChild(grid);
+    }
+  }
+
+  // ── Navigation ───────────────────────────────────────────────────────────────
+  function changePage(dir) {
+    const next = currentPage + dir;
+    if (next < 0 || next > 100) return;
+    currentPage = next;
+    render(currentPage);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changePage(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  changePage(-1);
+  });
+
+  // Swipe support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 60) changePage(dx < 0 ? 1 : -1);
+  });
+
+  // ── TTS ──────────────────────────────────────────────────────────────────────
+  function pulse(el) { el.classList.remove('speaking'); void el.offsetWidth; el.classList.add('speaking'); }
+
+  function speakEn()     { const d=NUMBERS[currentPage]; TTS.speak(d.en, 'en'); pulse(document.querySelector('.word-card.en')); }
+  function speakZhWord() { const d=NUMBERS[currentPage]; TTS.speak(d.zh, 'zh'); pulse(document.querySelector('.word-card.zh')); }
+  function speakPl()     { const d=NUMBERS[currentPage]; TTS.speak(d.pl, 'pl'); pulse(document.querySelector('.word-card.pl')); }
+  function speakZhNum()  { speakZhWord(); }
+
+  // ── Practice modal ────────────────────────────────────────────────────────────
+  function openPractice() {
+    const data = NUMBERS[currentPage];
+    document.getElementById('modalTitle').textContent = data.numeral;
+    document.getElementById('tabDigitLabel').textContent = data.numeral;
+    document.getElementById('tabChineseLabel').textContent = data.zh;
+    switchTab('digit');
+    document.getElementById('practiceModal').classList.add('open');
+  }
+
+  function closePractice() {
+    document.getElementById('practiceModal').classList.remove('open');
+    StrokeGuide.stopAnimation();
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tabDigit').classList.toggle('active', tab === 'digit');
+    document.getElementById('tabChinese').classList.toggle('active', tab === 'chinese');
+
+    const canvas = document.getElementById('practiceCanvas');
+    const hanziWrap = document.getElementById('hanziWrap');
+
+    if (tab === 'digit') {
+      canvas.style.display = 'block';
+      hanziWrap.style.display = 'none';
+      const data = NUMBERS[currentPage];
+      practiceController = StrokeGuide.initPractice(canvas, numeralLayout(data.numeral),
+        { accent: '#EE5A5A', outlineColor: '#ece3d5' });
+    } else {
+      canvas.style.display = 'none';
+      hanziWrap.style.display = 'flex';
+      initHanziWriter();
+    }
+  }
+
+  function initHanziWriter() {
+    const data = NUMBERS[currentPage];
+    const container = document.getElementById('hanzi-modal-container');
+    container.innerHTML = '';
+    // hanzi-writer requires a single character
+    const char = data.zh.slice(-1); // last char (for multi-char: use individual chars)
+    try {
+      hanziWriter = HanziWriter.create(container, char, {
+        width: 280, height: 280,
+        padding: 20,
+        showOutline: true,
+        strokeColor: '#E53935',
+        outlineColor: '#ddd',
+        drawingColor: '#FF6B6B',
+        drawingWidth: 12,
+        showHintAfterMisses: 2,
+      });
+    } catch(e) {
+      container.innerHTML = `<div style="text-align:center;color:#ccc;padding:40px;font-size:2rem">${data.zh}</div>`;
+    }
+  }
+
+  function watchAnimation() {
+    const data = NUMBERS[currentPage];
+    const canvas = document.getElementById('practiceCanvas');
+    if (currentTab === 'digit') {
+      StrokeGuide.animate(canvas, numeralLayout(data.numeral),
+        { accent: '#EE5A5A', outlineColor: '#ece3d5', msPerStroke: 1100 });
+    } else if (hanziWriter) {
+      hanziWriter.animateCharacter();
+    }
+  }
+
+  function clearPractice() {
+    if (currentTab === 'digit') {
+      if (practiceController) practiceController.clear();
+    } else if (hanziWriter) {
+      hanziWriter.cancelQuiz();
+      initHanziWriter();
+    }
+  }
+
+  // Close modal on overlay click
+  document.getElementById('practiceModal').addEventListener('click', function(e) {
+    if (e.target === this) closePractice();
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────────
+  render(0);
+</script>
+</body>
+</html>

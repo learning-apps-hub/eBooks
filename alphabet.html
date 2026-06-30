@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Alphabet Book – Emily</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="book-page" id="app">
+
+  <!-- Header -->
+  <header class="book-header">
+    <button class="home-btn" onclick="location.href='index.html'" title="Home">🏠</button>
+    <span class="book-name">📖 Alphabet A · B · C</span>
+    <span class="page-counter" id="pageCounter">A / Z</span>
+  </header>
+
+  <!-- Content -->
+  <div class="content-area page-slide" id="contentArea">
+
+    <!-- Left page: capital + small letter worksheet (outline + stroke order) -->
+    <div class="page-left">
+      <canvas id="letterCanvas" class="glyph-canvas" width="420" height="320" onclick="speakLetter()"></canvas>
+    </div>
+
+    <!-- Right page: illustration + word cards -->
+    <div class="page-right">
+      <!-- Big emoji illustration -->
+      <div class="illustration" id="illustration" style="font-size:clamp(5rem,18vw,10rem); max-height: 220px;">🍎</div>
+
+      <div class="word-cards">
+        <!-- Letter pronunciation card -->
+        <div class="word-card en" onclick="speakLetter()" style="background: linear-gradient(90deg,#E3F2FD,#EDE7F6);">
+          <span class="flag">🔤</span>
+          <div>
+            <div class="word-text" id="letterLabel" style="color:#512DA8; font-size:2rem;">A</div>
+            <div class="word-sub">Tap to hear letter</div>
+          </div>
+          <span class="speaker">🔊</span>
+        </div>
+
+        <!-- English word -->
+        <div class="word-card en" onclick="speakEnWord()">
+          <span class="flag">🇬🇧</span>
+          <div>
+            <div class="word-text" id="enWord">Apple</div>
+            <div class="word-sub">English</div>
+          </div>
+          <span class="speaker">🔊</span>
+        </div>
+
+        <!-- Chinese word -->
+        <div class="word-card zh" onclick="speakZhWord()">
+          <span class="flag">🇨🇳</span>
+          <div>
+            <div class="word-text" id="zhWord">苹果</div>
+            <div class="word-sub" id="zhWordPinyin">píng guǒ</div>
+          </div>
+          <span class="speaker">🔊</span>
+        </div>
+
+        <!-- Polish word -->
+        <div class="word-card pl" onclick="speakPlWord()">
+          <span class="flag">🇵🇱</span>
+          <div>
+            <div class="word-text" id="plWord">Jabłko</div>
+            <div class="word-sub">Polski</div>
+          </div>
+          <span class="speaker">🔊</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer navigation -->
+  <footer class="book-footer">
+    <button class="nav-btn alphabet" id="prevBtn" onclick="changePage(-1)" disabled>◀</button>
+    <button class="practice-btn" onclick="openPractice()" style="background:#B3E5FC;color:#01579B;">✏️ Practice Writing</button>
+    <button class="nav-btn alphabet" id="nextBtn" onclick="changePage(1)">▶</button>
+  </footer>
+</div>
+
+<!-- Practice Modal -->
+<div class="modal-overlay" id="practiceModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Write: <span id="modalTitle">A</span></span>
+      <button class="modal-close" onclick="closePractice()">✕</button>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabLetter" onclick="switchTab('letter')">Letter <span id="tabLetterLabel">A</span></button>
+      <button class="modal-tab" id="tabChinese" onclick="switchTab('chinese')">Chinese <span id="tabChineseLabel">苹果</span></button>
+    </div>
+
+    <canvas id="practiceCanvas" width="340" height="340"></canvas>
+
+    <div id="hanziWrap" style="display:none; justify-content:center; flex-direction:column; align-items:center; gap:8px;">
+      <div id="hanzi-modal-container"></div>
+      <div id="hanziNav" style="display:flex;gap:8px;"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-watch" onclick="watchAnimation()" style="background:#4FC3F7;">🎬 Watch</button>
+      <button class="btn-clear" onclick="clearPractice()">🗑️ Clear</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/tts.js"></script>
+<script src="js/stroke.js"></script>
+<script>
+  let currentPage = 0;
+  let practiceController = null;
+  let currentTab = 'letter';
+  let hanziWriters = [];
+  let hanziIdx = 0;
+
+  // Layout: capital + small letter side by side
+  function letterLayout(letter) {
+    const upper = LETTER_STROKES[letter];
+    const lower = LETTER_STROKES_LOWER[letter.toLowerCase()];
+    return StrokeGuide.placeGlyphs([upper, lower].filter(Boolean));
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+  function render(idx) {
+    const data = ALPHABET[idx];
+
+    document.getElementById('pageCounter').textContent = `${data.letter} / Z`;
+    document.getElementById('letterLabel').textContent = data.letter + ' ' + data.letter.toLowerCase();
+
+    // Letter worksheet (A a with stroke order)
+    StrokeGuide.drawStatic(document.getElementById('letterCanvas'),
+      letterLayout(data.letter), { accent: '#4FC3F7', outlineColor: '#D6ECFB' });
+
+    document.getElementById('illustration').textContent = data.emoji;
+
+    document.getElementById('enWord').textContent   = data.en;
+    document.getElementById('zhWord').textContent   = data.zh;
+    document.getElementById('zhWordPinyin').textContent = data.zhPinyin;
+    document.getElementById('plWord').textContent   = data.pl;
+
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === ALPHABET.length - 1);
+
+    const ca = document.getElementById('contentArea');
+    ca.classList.remove('page-slide');
+    void ca.offsetWidth;
+    ca.classList.add('page-slide');
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────────────
+  function changePage(dir) {
+    const next = currentPage + dir;
+    if (next < 0 || next >= ALPHABET.length) return;
+    currentPage = next;
+    render(currentPage);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changePage(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  changePage(-1);
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 60) changePage(dx < 0 ? 1 : -1);
+  });
+
+  // ── TTS ───────────────────────────────────────────────────────────────────────
+  function pulse(el) { el.classList.remove('speaking'); void el.offsetWidth; el.classList.add('speaking'); }
+
+  function speakLetter() {
+    const d = ALPHABET[currentPage];
+    // lowercase → engines read the letter sound, not "capital A"
+    TTS.speak(d.letter.toLowerCase(), 'en', 0.6);
+    pulse(document.getElementById('letterCanvas'));
+  }
+
+  function speakEnWord() {
+    const d = ALPHABET[currentPage];
+    TTS.speak(d.en, 'en');
+    pulse(document.querySelectorAll('.word-card.en')[1]);
+  }
+
+  function speakZhWord() {
+    const d = ALPHABET[currentPage];
+    TTS.speak(d.zh, 'zh');
+    pulse(document.querySelector('.word-card.zh'));
+  }
+
+  function speakPlWord() {
+    const d = ALPHABET[currentPage];
+    TTS.speak(d.pl, 'pl');
+    pulse(document.querySelector('.word-card.pl'));
+  }
+
+  // ── Practice modal ────────────────────────────────────────────────────────────
+  function openPractice() {
+    const data = ALPHABET[currentPage];
+    document.getElementById('modalTitle').textContent        = data.letter;
+    document.getElementById('tabLetterLabel').textContent    = data.letter;
+    document.getElementById('tabChineseLabel').textContent   = data.zh;
+    switchTab('letter');
+    document.getElementById('practiceModal').classList.add('open');
+  }
+
+  function closePractice() {
+    document.getElementById('practiceModal').classList.remove('open');
+    StrokeGuide.stopAnimation();
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tabLetter').classList.toggle('active', tab === 'letter');
+    document.getElementById('tabChinese').classList.toggle('active', tab === 'chinese');
+
+    const canvas  = document.getElementById('practiceCanvas');
+    const hanziWr = document.getElementById('hanziWrap');
+
+    if (tab === 'letter') {
+      canvas.style.display  = 'block';
+      hanziWr.style.display = 'none';
+      const data = ALPHABET[currentPage];
+      practiceController = StrokeGuide.initPractice(canvas, letterLayout(data.letter),
+        { accent: '#4FC3F7', outlineColor: '#dceefb' });
+    } else {
+      canvas.style.display  = 'none';
+      hanziWr.style.display = 'flex';
+      initHanziWriters();
+    }
+  }
+
+  function initHanziWriters() {
+    const data = ALPHABET[currentPage];
+    const chars = [...data.zh]; // split into individual characters
+    const container = document.getElementById('hanzi-modal-container');
+    const navEl = document.getElementById('hanziNav');
+    container.innerHTML = '';
+    navEl.innerHTML = '';
+    hanziWriters = [];
+    hanziIdx = 0;
+
+    // One writer per character; show first, nav buttons if >1
+    chars.forEach((ch, i) => {
+      const wrap = document.createElement('div');
+      wrap.id = `hw-${i}`;
+      wrap.style.display = i === 0 ? 'block' : 'none';
+      container.appendChild(wrap);
+      try {
+        const w = HanziWriter.create(wrap, ch, {
+          width: 240, height: 240, padding: 16,
+          showOutline: true,
+          strokeColor: '#E53935',
+          outlineColor: '#ddd',
+        });
+        hanziWriters.push(w);
+      } catch(e) {
+        wrap.innerHTML = `<div style="text-align:center;color:#ccc;padding:40px;font-size:2rem">${ch}</div>`;
+        hanziWriters.push(null);
+      }
+
+      if (chars.length > 1) {
+        const btn = document.createElement('button');
+        btn.textContent = ch;
+        btn.style.cssText = 'padding:8px 14px;border-radius:10px;border:2px solid #eee;background:#fafafa;font-size:1.2rem;cursor:pointer;font-family:inherit;';
+        btn.onclick = () => showHanziChar(i);
+        navEl.appendChild(btn);
+      }
+    });
+  }
+
+  function showHanziChar(idx) {
+    hanziIdx = idx;
+    const data = ALPHABET[currentPage];
+    const chars = [...data.zh];
+    chars.forEach((_, i) => {
+      document.getElementById(`hw-${i}`).style.display = i === idx ? 'block' : 'none';
+    });
+  }
+
+  function watchAnimation() {
+    if (currentTab === 'letter') {
+      const data = ALPHABET[currentPage];
+      const canvas = document.getElementById('practiceCanvas');
+      StrokeGuide.animate(canvas, letterLayout(data.letter),
+        { accent: '#4FC3F7', outlineColor: '#dceefb', msPerStroke: 950 });
+    } else {
+      if (hanziWriters[hanziIdx]) hanziWriters[hanziIdx].animateCharacter();
+    }
+  }
+
+  function clearPractice() {
+    if (currentTab === 'letter') {
+      if (practiceController) practiceController.clear();
+    } else {
+      initHanziWriters();
+    }
+  }
+
+  document.getElementById('practiceModal').addEventListener('click', function(e) {
+    if (e.target === this) closePractice();
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────────
+  render(0);
+</script>
+</body>
+</html>

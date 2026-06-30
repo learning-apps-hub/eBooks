@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Emily's Books</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .book-card.numbers { --accent: #FF6B6B; }
+  .book-card.alphabet { --accent: #4FC3F7; }
+  .book-card.numbers .icon-wrap {
+    background: linear-gradient(135deg, #FFE5B4, #FFB7C5);
+    border-radius: 24px; padding: 20px; font-size: 3rem; line-height: 1;
+  }
+  .book-card.alphabet .icon-wrap {
+    background: linear-gradient(135deg, #B7E5FF, #D7B7FF);
+    border-radius: 24px; padding: 20px; font-size: 3rem; line-height: 1;
+  }
+</style>
+</head>
+<body>
+<div class="bubbles" id="bubbles"></div>
+
+<main class="home-page">
+  <h1 class="home-title">📚 Emily's Books</h1>
+  <p class="home-subtitle">English · 中文 · Polski</p>
+
+  <div class="book-grid">
+    <a href="numbers.html" class="book-card numbers">
+      <div class="icon-wrap">123</div>
+      <div class="title">Numbers</div>
+      <div class="subtitle">0 → 100</div>
+    </a>
+
+    <a href="alphabet.html" class="book-card alphabet">
+      <div class="icon-wrap">ABC</div>
+      <div class="title">Alphabet</div>
+      <div class="subtitle">A → Z</div>
+    </a>
+  </div>
+</main>
+
+<script>
+  // Generate floating bubbles
+  const COLORS = ['#FF6B6B','#4FC3F7','#66BB6A','#FFD54F','#CE93D8','#FF8A65'];
+  const wrap = document.getElementById('bubbles');
+  for (let i = 0; i < 18; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = 30 + Math.random() * 80;
+    Object.assign(b.style, {
+      width:  size + 'px',
+      height: size + 'px',
+      left:   Math.random() * 100 + '%',
+      bottom: '-120px',
+      background: COLORS[Math.floor(Math.random() * COLORS.length)],
+      animationDuration: (8 + Math.random() * 14) + 's',
+      animationDelay:    (Math.random() * 10) + 's',
+    });
+    wrap.appendChild(b);
+  }
+</script>
+</body>
+</html>
