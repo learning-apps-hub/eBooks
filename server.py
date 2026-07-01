@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Emily Book Series — HTTPS server on port 8082.
+eBooks — HTTPS server on port 8082.
 HTTPS is required for Web Speech API (TTS) to work over the local network.
 A self-signed certificate is generated automatically on first run.
 """
@@ -23,7 +23,7 @@ def gen_cert():
         'openssl', 'req', '-new', '-x509',
         '-keyout', KEY, '-out', CERT,
         '-days', '3650', '-nodes',
-        '-subj', '/CN=emily-books/O=Emily'
+        '-subj', '/CN=ebooks-app/O=eBooks'
     ], check=True, capture_output=True)
     print("Certificate created.")
 
@@ -41,7 +41,7 @@ ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 ctx.load_cert_chain(CERT, KEY)
 httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
 
-print(f"\n📚 Emily's Book Series running!")
+print(f"\n📚 eBooks running!")
 print(f"   Open on your phone/Mac (accept the security warning once):")
 print(f"   https://10.0.20.52:{PORT}")
 print(f"\n   Press Ctrl+C to stop.\n")
