@@ -1,3 +1,13 @@
 key.pem
 cert.pem
 *.log
+.DS_Store
+._*
+
+# Books are allowlisted: only the listed folders are tracked/published.
+# Anything else under books/ is local-only and stays untracked.
+books/*
+!books/numbers
+!books/numbers/**
+!books/alphabet
+!books/alphabet/**
