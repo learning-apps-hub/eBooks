@@ -6,7 +6,7 @@
 <title>Alphabet Book</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="../../shared/css/style.css">
 </head>
 <body>
 
@@ -14,7 +14,7 @@
 
   <!-- Header -->
   <header class="book-header">
-    <button class="home-btn" onclick="location.href='index.html'" title="Home">🏠</button>
+    <button class="home-btn" onclick="location.href='../../index.html'" title="Home">🏠</button>
     <span class="book-name">📖 Alphabet A · B · C</span>
     <span class="page-counter" id="pageCounter">A / Z</span>
   </header>
@@ -112,9 +112,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
-<script src="js/data.js"></script>
-<script src="js/tts.js"></script>
-<script src="js/stroke.js"></script>
+<script src="data.js"></script>
+<script src="../../shared/js/tts.js"></script>
+<script src="../../shared/js/stroke.js"></script>
 <script>
   let currentPage = 0;
   let practiceController = null;
