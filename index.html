@@ -18,6 +18,12 @@
     background: linear-gradient(135deg, #B7E5FF, #D7B7FF);
     border-radius: 24px; padding: 20px; font-size: 3rem; line-height: 1;
   }
+  .book-card.local .icon-wrap {
+    width: 96px; height: 72px; border-radius: 20px;
+    display: grid; place-items: center; color: #fff;
+    font-weight: 900; font-size: 1.8rem;
+  }
+  .progress-line { color: #888; font-size: .9rem; font-weight: 800; min-height: 1.2em; }
 </style>
 </head>
 <body>
@@ -27,7 +33,7 @@
   <h1 class="home-title">📚 eBooks</h1>
   <p class="home-subtitle">English · 中文 · Polski</p>
 
-  <div class="book-grid">
+  <div class="book-grid" id="bookGrid">
     <a href="books/numbers/" class="book-card numbers">
       <div class="icon-wrap">123</div>
       <div class="title">Numbers</div>
@@ -41,6 +47,15 @@
     </a>
   </div>
 </main>
+
+<!--
+  Local-only books (private-only source material) are never listed here.
+  If books/local-books.js exists on this server, it defines
+  window.EBOOKS_LOCAL_BOOKS and this page renders cards for it. On the
+  public GitHub Pages deploy that file doesn't exist (gitignored, never
+  committed) so onerror below just leaves the array empty.
+-->
+<script src="books/local-books.js" onerror="window.EBOOKS_LOCAL_BOOKS = []"></script>
 
 <script>
   // Generate floating bubbles
@@ -61,6 +76,34 @@
     });
     wrap.appendChild(b);
   }
+
+  // Render any local-only book cards (see comment above the script tag).
+  const grid = document.getElementById('bookGrid');
+  (window.EBOOKS_LOCAL_BOOKS || []).forEach(book => {
+    const a = document.createElement('a');
+    a.href = `books/${book.slug}/`;
+    a.className = 'book-card local';
+    a.style.setProperty('--accent', book.accent || '#4FC3F7');
+    a.dataset.progress = book.slug;
+    a.dataset.pages = book.pages;
+    a.innerHTML = `
+      <div class="icon-wrap" style="background:${book.iconBg || 'var(--accent)'};">${book.icon || ''}</div>
+      <div class="title">${book.title}</div>
+      <div class="subtitle">${book.subtitle || ''}</div>
+      <div class="progress-line"></div>
+    `;
+    grid.appendChild(a);
+  });
+
+  document.querySelectorAll('[data-progress]').forEach(card => {
+    const slug = card.dataset.progress;
+    const total = Number(card.dataset.pages);
+    const saved = Number(localStorage.getItem(`ebooks:${slug}:progress`));
+    const line = card.querySelector('.progress-line');
+    if (!line || !Number.isFinite(saved)) return;
+    const page = Math.min(total, Math.max(1, saved + 1));
+    line.textContent = `Continue: page ${page} of ${total}`;
+  });
 </script>
 </body>
 </html>

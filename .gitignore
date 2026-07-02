@@ -3,6 +3,7 @@ cert.pem
 *.log
 .DS_Store
 ._*
+scripts/.venv/
 
 # Books are allowlisted: only the listed folders are tracked/published.
 # Anything else under books/ is local-only and stays untracked.
