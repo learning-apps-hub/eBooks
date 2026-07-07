@@ -12,3 +12,8 @@ books/*
 !books/numbers/**
 !books/alphabet
 !books/alphabet/**
+
+# Python bytecode (regenerable; py_compile side effects — 2026-07-07 incident)
+__pycache__/
+*.pyc
+*.pyo
