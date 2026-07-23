@@ -1,0 +1,13 @@
+# eBooks app repo structure allowlist (pre-commit guard).
+# Bash case-glob patterns: * matches any characters INCLUDING slashes.
+# Publishing a new book = add its books/<slug>/* line (and its .gitignore
+# allowlist entry) in the same commit. Local-only books are intentionally
+# absent from this file.
+.repo-structure
+.gitignore
+index.html
+server.py
+shared/*
+scripts/*
+books/numbers/*
+books/alphabet/*
